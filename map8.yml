@@ -1,0 +1,1214 @@
+openapi: 3.0.1
+info:
+  title: '台灣圖霸 | Map8 Platform API'
+  description: |
+    歡迎使用 [台灣圖霸 | Map8 Platform](https://map8.zone) 的 **地圖平台 API explorer!!~**
+    - 歡迎 [點此申請試用](https://docs.google.com/forms/d/1BMN0cnmROBvtfU1JAxk-2sR9KcZdViHMNFtsyTR12l8)~ 
+    - 有任何技術疑難，歡迎您跟我們聯絡喔!!! (請按底下連結)
+  contact:
+    name: '聯絡 : 台灣圖霸服務中心'
+    url: http://www.goyourlife.com/zh-TW/map-contact/
+  version: v3.0.15_2020-10-13
+externalDocs:
+  description: '請參考 : 官方技術文件'
+  url: https://www.map8.zone/map8-api-docs/#map8-platform
+servers:
+- url: https://api.map8.zone
+tags:
+- name: '[Places] Find Place API'
+  description: ' 給定關鍵字，搜尋地點'
+- name: '[Places] Place Details API'
+  description: ' 取得地點詳細資訊 (主要用於Autocomplete API 的結果)'
+- name: '[Places] Nearby Search API'
+  description: ' 給定座標，搜尋周遭'
+- name: '[Places] Text Search API'
+  description: ' 以任意的關鍵字組合進行搜尋 <br/> (請把這個當作搜尋引擎, 關鍵字以空白分隔, 例如 <code>加油站 台北</code> 這樣即可得到滿意的結果)'
+- name: '[Places] Place Autocomplete API'
+  description: ' 讓使用者邊輸入，便邊回應出推測的可能清單 <br/> (運用在逐字逼近搜尋目標物的場景上)'
+- name: '[Places] Geocoding API'
+  description: ' 地址定位 (**地址 / 門牌** 轉為 **經緯度**) <br/> 反地址定位 (**經緯度** 轉為 **地址 / 門牌**)'
+- name: '[Maps] Maps Static API'
+  description: ' 製作顯示地圖的圖檔 <br/> 讓您在網站或其他任何素材中嵌入靜態地圖'
+- name: '[Premium] [Housing] School Districts API'
+  description: |
+    查詢學區 <sub>(`請注意 : 本查詢結果僅供參考，實際可就讀學校依各縣市政府當年度核定結果為主`)</sub>
+- name: '[Routes] Directions API'
+  description: ' 依所給定之起訖點 (與數個中途點) 順序，進行多點路徑規劃'
+- name: '[Roads] Nearest Roads API'
+  description: ' 取得道路屬性（譬如道路 `速限`、高架、橋樑、限高)'
+- name: '[Roads] Snap to Roads API'
+  description: ' 對地圖黏岀最可能路徑 `(黏路)`'
+paths:
+  /v2/place/findplacefromtext/{輸出格式}:
+    get:
+      tags:
+      - '[Places] Find Place API'
+      operationId: 'findplacefromtext'
+      parameters:
+      - name: 輸出格式
+        in: path
+        description: 選擇性參數，本版本不理會此參數，response 一律以 JSON 格式回應
+        required: true
+        schema: 
+          type: string
+          enum:
+          - json
+          - xml
+      - name: input
+        in: query
+        description: 必要參數，欲搜尋的地點的關鍵詞 (無任何空白分隔)。可以是地址、地名、商店名稱、或電話
+        required: true
+        schema:
+          type: string
+          example: '研鼎智能'
+      - name: inputtype
+        in: query
+        description: 選擇性參數，應為 textquery 或 phonenumber 兩者之一。若未給，則由台灣圖霸系統自動智慧判斷
+        required: false
+        schema:
+          type: string
+          enum:
+          - textquery
+          - phonenumber
+      - name: locationbias
+        in: query
+        description: '選擇性參數，可為 : <br/> (1) <code>ipbias</code> : 要求系統依照您發出此 request 的 IP address 來決定本 API 進行搜尋時的中心點 <br/> (2) <code><緯度>,<經度></code> : 要求系統依據給定的地理經緯度座標為搜尋中心點<br/> * 此參數若未給，則系統預設採用 <code>ipbias</code> <br/> * (注意) 採用 <code>ipbias</code> 方式將增加額外的系統動作，可能因網路而造成搜尋速度相當幅度的延遲。因此，建議您盡可能不要採用 ipbias。強烈建議您一律給 <code>locationbias=<緯度>,<經度></code> 參數'
+        required: false
+        schema:
+          type: string
+        example: 25.03625,121.548728
+      - name: postcode
+        in: query
+        description: '選擇性參數 : 是否需要回傳三碼郵遞區號'
+        required: false
+        allowEmptyValue: true
+        schema:
+          type: boolean
+        example: true
+      - name: formatted_address_embed_postcode
+        in: query
+        description: '選擇性參數 : 若上述 <code>postcode</code> 參數有被指定，則指定此參數以將三碼郵遞區號直接內嵌於 response 之 <code>formatted_address</code> 欄位內 (否則，三碼郵遞區號將另以 <code>postcode</code> 欄位回傳)'
+        required: false
+        allowEmptyValue: true
+        schema:
+          type: boolean
+        example: false
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: |
+            - Successful operation
+            - 每一筆搜尋結果內的各欄位, 若無值, 仍一律回傳, 但帶空值
+            - (Migration 指南) 與 Google Maps 的 Find Place API 相容性，請參閱我們的 [Map8 API 官方技術文件](https://www.map8.zone/map8-api-docs/#api-find-place-api)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceCandidates'
+        '400':
+          $ref: '#/components/responses/BadRequest400'
+        '401':
+          $ref: '#/components/responses/AuthorizationRequired401'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable503'
+  /v2/place/details/{輸出格式}:
+    get:
+      tags:
+      - '[Places] Place Details API'
+      operationId: 'placedetails'
+      parameters:
+      - name: 輸出格式
+        in: path
+        description: 選擇性參數，本版本不理會此參數，response 一律以 JSON 格式回應
+        required: true
+        schema: 
+          type: string
+          enum:
+          - json
+          - xml
+      - name: placeid
+        in: query
+        description: 必要參數，欲搜尋的地點的關鍵詞 (無任何空白分隔)。可以是地址、地名、商店名稱、或電話
+        required: true
+        schema:
+          type: string
+          example: 'NzYqAQYARhkCVltTRRxiJBIYMDIIZgVSLyMdf25eBDIIPQ1VHWEwEg=='
+      - name: postcode
+        in: query
+        description: '選擇性參數 : 是否需要回傳三碼郵遞區號'
+        required: false
+        allowEmptyValue: true
+        schema:
+          type: boolean
+        example: true
+      - name: formatted_address_embed_postcode
+        in: query
+        description: '選擇性參數 : 若上述 <code>postcode</code> 參數有被指定，則指定此參數以將三碼郵遞區號直接內嵌於 response 之 <code>formatted_address</code> 欄位內 (否則，三碼郵遞區號將另以 <code>postcode</code> 欄位回傳)'
+        required: false
+        allowEmptyValue: true
+        schema:
+          type: boolean
+        example: false
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: |
+            - Successful operation
+            - 每一筆搜尋結果內的各欄位, 若無值, 仍一律回傳, 但帶空值
+            - 與 Autocomplete API 的關聯，請參閱我們的 [Map8 API 官方技術文件](https://www.map8.zone/map8-api-docs/#api-place-details-api)
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaceDetails'
+        '400':
+          $ref: '#/components/responses/BadRequest400'
+        '401':
+          $ref: '#/components/responses/AuthorizationRequired401'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable503'
+  /v2/place/nearbysearch/{輸出格式}:
+    get:
+      tags:
+      - '[Places] Nearby Search API'
+      operationId: 'nearbysearch'
+      parameters:
+      - name: 輸出格式
+        in: path
+        description: 選擇性參數，本版本不理會此參數，response 一律以 JSON 格式回應
+        required: true
+        schema: 
+          type: string
+          enum:
+          - json
+          - xml
+      - name: location
+        in: query
+        description: '必要參數，要求系統依據給定的地理座標為搜尋中心點。格式為 <經度>,<緯度>，分別為緯度與經度。'
+        required: true
+        schema:
+          type: string
+          example: 25.069117,121.58732
+      - name: radius
+        in: query
+        description: '選擇性參數，指定以上述 <code>location</code> 為中心，以本參數 <code>radius</code> 指定方圓半徑之距離作為搜索範圍 (最大為 50.000 公里)。若未給，則由台灣圖霸系統自動智慧判斷'
+        required: false
+        schema:
+          type: number
+          minimum: 0
+          maximum: 50.000
+          example: 2.5
+      - name: limit
+        in: query
+        description: '選擇性參數。指定取回的資料筆數'
+        required: false
+        schema:
+          type: number
+          minimum: 0
+          maximum: 20.000
+          example: 15
+      - name: cat
+        in: query
+        description: |
+          - 選擇性參數。指定欲搜尋周遭之地點類型。請參考所支援之 [地點類型](https://www.map8.zone/map8-api-docs/#34b02c36cf)
+          - 可多選 : 請直接列舉地點類型，透過逗號 (,) 加以分隔即可 (譬如 `cat=國小,國中,高中職校`)
+        required: false
+        schema:
+          type: string
+          example: 便利商店,國小,國中,高中職校
+      - name: postcode
+        in: query
+        description: '選擇性參數 : 是否需要回傳三碼郵遞區號'
+        required: false
+        allowEmptyValue: true
+        schema:
+          type: boolean
+        example: true
+      - name: formatted_address_embed_postcode
+        in: query
+        description: '選擇性參數 : 若上述 <code>postcode</code> 參數有被指定，則指定此參數以將三碼郵遞區號直接內嵌於 response 之 <code>formatted_address</code> 欄位內 (否則，三碼郵遞區號將另以 <code>postcode</code> 欄位回傳)'
+        required: false
+        allowEmptyValue: true
+        schema:
+          type: boolean
+        example: false
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/PlaceResults200'
+        '400':
+          $ref: '#/components/responses/BadRequest400'
+        '401':
+          $ref: '#/components/responses/AuthorizationRequired401'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable503'
+  /v2/place/textsearch/{輸出格式}:
+    get:
+      tags:
+      - '[Places] Text Search API'
+      operationId: 'textsearch'
+      parameters:
+      - name: 輸出格式
+        in: path
+        description: 選擇性參數，本版本不理會此參數，response 一律以 JSON 格式回應
+        required: true
+        schema: 
+          type: string
+          enum:
+          - json
+          - xml
+      - name: query
+        in: query
+        description: '必要參數，給定任意的關鍵字組合 (請把這個當作搜尋引擎) 關鍵字以空白分隔, 例如 <code>加油站 台北</code> 這樣即可得到滿意的結果'
+        required: true
+        schema:
+          type: string
+          example: '台東 便當'
+      - name: location
+        in: query
+        description: |
+          選擇性參數，要求系統依據給定的地理座標為搜尋中心點。格式為 <code><經度>,<緯度></code>，分別為緯度與經度。
+          
+          此參數若未給，則系統預設依照您發出此 request 的 IP address 來決定本 API 進行搜尋時的中心點。但請注意 :
+            - 此方式將增加額外的系統動作，可能因網路而造成搜尋速度相當幅度的 `延遲`
+            - 因此，強烈建議您一律給 <code>location=<緯度>,<經度></code> 參數
+        required: false
+        schema:
+          type: string
+        example: 25.03625,121.548728
+      - name: radius
+        in: query
+        description: '選擇性參數，指定以上述 <code>location</code> 為中心，以本參數 <code>radius</code> 指定方圓半徑之距離作為搜索範圍 (最大為 50.000 公里)。若未給，則由台灣圖霸系統自動智慧判斷'
+        required: false
+        schema:
+          type: number
+          minimum: 0
+          maximum: 50.000
+          example: 50
+      - name: cat
+        in: query
+        description: |
+          - 選擇性參數。指定欲搜尋周遭之地點類型。請參考所支援之 [地點類型](https://www.map8.zone/map8-api-docs/#34b02c36cf)
+          - 可多選 : 請直接列舉地點類型，透過逗號 (,) 加以分隔即可 (譬如 `cat=中式美食,異國美食`)
+        required: false
+        schema:
+          type: string
+          example: 中式美食,異國美食
+      - name: postcode
+        in: query
+        description: '選擇性參數 : 是否需要回傳三碼郵遞區號'
+        required: false
+        allowEmptyValue: true
+        schema:
+          type: boolean
+        example: true
+      - name: formatted_address_embed_postcode
+        in: query
+        description: '選擇性參數 : 若上述 <code>postcode</code> 參數有被指定，則指定此參數以將三碼郵遞區號直接內嵌於 response 之 <code>formatted_address</code> 欄位內 (否則，三碼郵遞區號將另以 <code>postcode</code> 欄位回傳)'
+        required: false
+        allowEmptyValue: true
+        schema:
+          type: boolean
+        example: false
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/PlaceResults200'
+        '400':
+          $ref: '#/components/responses/BadRequest400'
+        '401':
+          $ref: '#/components/responses/AuthorizationRequired401'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable503'
+  /v2/place/autocomplete/{輸出格式}:
+    get:
+      tags:
+      - '[Places] Place Autocomplete API'
+      operationId: 'autocomplete'
+      parameters:
+      - name: 輸出格式
+        in: path
+        description: 選擇性參數，本版本不理會此參數，response 一律以 JSON 格式回應
+        required: true
+        schema: 
+          type: string
+          enum:
+          - json
+          - xml
+      - name: input
+        in: query
+        description: '必要參數，欲搜尋的關鍵詞 (無任何空白分隔) -- 通常是輸入欄當下的使用者輸入。例如 <code>捷運大坪</code>。可以是地址、地名、商店名稱、或電話'
+        required: true
+        schema:
+          type: string
+          example: '明美'
+      - name: location
+        in: query
+        description: |
+          選擇性參數，要求系統依據給定的地理座標為搜尋中心點。格式為 <code><經度>,<緯度></code>，分別為緯度與經度。
+          
+          此參數若未給，則系統預設依照您發出此 request 的 IP address 來決定本 API 進行搜尋時的中心點。但請注意 :
+          - 此方式將增加額外的系統動作，可能因網路而造成搜尋速度相當幅度的 `延遲`
+          - 因此，強烈建議您一律給 <code>location=<緯度>,<經度></code> 參數'
+        required: false
+        schema:
+          type: string
+        example: 25.03625,121.548728
+      - name: radius
+        in: query
+        description: '選擇性參數，指定以上述 <code>location</code> 為中心，以本參數 <code>radius</code> 指定方圓半徑之距離作為搜索範圍 (最大為 50.000 公里)。若未給，則由台灣圖霸系統自動智慧判斷'
+        required: false
+        schema:
+          type: number
+          minimum: 0
+          maximum: 50.000
+          example: 10
+      - name: strictbounds
+        in: query
+        description: '選擇性參數 (`true` / `false`) : 是否要求強制遵循上述 `radius` 參數之指定範圍'
+        required: false
+        allowEmptyValue: true
+        schema:
+          type: boolean
+        example: false
+      responses:
+        '200':
+          description: |
+            - Successful operation
+            - <code>predictions</code> 陣列帶回本次的預測結果。本 API 的查詢，最多將一次回應多達 10 筆資料
+            - 每一筆搜尋結果內的各欄位, 若無值, 仍一律回傳, 但帶空值
+            - 請參閱我們的 [Map8 API 官方技術文件](https://www.map8.zone/map8-api-docs/#api-place-autocomplete-api)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlacePredictions'
+        '400':
+          $ref: '#/components/responses/BadRequest400'
+        '401':
+          $ref: '#/components/responses/AuthorizationRequired401'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable503'
+  /v2/place/geocode/{輸出格式}:
+    get:
+      tags:
+      - '[Places] Geocoding API'
+      operationId: 'geocode'
+      parameters:
+      - name: 輸出格式
+        in: path
+        description: 選擇性參數，本版本不理會此參數，response 一律以 JSON 格式回應
+        required: true
+        schema: 
+          type: string
+          enum:
+          - json
+          - xml
+      - name: address
+        in: query
+        description: '欲轉換為 <code>經緯度</code> 座標之 <code>地址</code> (若欲執行的是 <code>地址定位</code> ，則此參數為必須)'
+        required: false
+        schema:
+          type: string
+          example: '台北市內湖區新湖三路189號'
+      - name: latlng
+        in: query
+        description: '欲轉換為 <code>地址</code> 的 <code>經緯度</code> 座標 (格式為 <code><緯度>,<經度></code>)  (若欲執行的是 <code>反地址定位</code> ，則此參數為必須)'
+        required: false
+        schema:
+          type: string
+          example: '25.065089,121.580056'
+      - name: postcode
+        in: query
+        description: '選擇性參數 : 是否需要回傳三碼郵遞區號'
+        required: false
+        allowEmptyValue: true
+        schema:
+          type: boolean
+        example: true
+      - name: formatted_address_embed_postcode
+        in: query
+        description: '選擇性參數 : 若上述 <code>postcode</code> 參數有被指定，則指定此參數以將三碼郵遞區號直接內嵌於 response 之 <code>formatted_address</code> 欄位內 (否則，三碼郵遞區號將另以 <code>postcode</code> 欄位回傳)'
+        required: false
+        allowEmptyValue: true
+        schema:
+          type: boolean
+        example: false
+      responses:
+        '200':
+          description: |
+            - Successful operation
+            - 每一筆搜尋結果內的各欄位, 若無值, 仍一律回傳, 但帶空值
+            - 本 API 結果的欄位，特別是 `level`, `likelihood`, 與 `authoritative` 等欄位的解讀，請參照我們的 [Map8 API 官方技術文件](https://www.map8.zone/map8-api-docs/#geocoding-api)
+          content:
+            application/json:
+              schema:
+                oneOf: 
+                  - $ref: '#/components/schemas/GeocodeResults'
+                  - $ref: '#/components/schemas/ReverseGeocodeResults'
+        '400':
+          $ref: '#/components/responses/BadRequest400'
+        '401':
+          $ref: '#/components/responses/AuthorizationRequired401'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable503'
+  /maps/staticmap:
+    get:
+      tags:
+      - '[Maps] Maps Static API'
+      operationId: 'mapsstatic'
+      parameters:
+      - name: center
+        in: query
+        description: '必要參數，欲製作成圖片的地圖中心點 (將與圖片四周等距離)，格式為 <code><緯度>,<經度></code>'
+        required: true
+        schema:
+          type: string
+        example: 25.03745,121.546428
+      - name: zoom
+        in: query
+        description: |
+          必要參數，整數，代表欲製作成圖片的地圖縮放層級 (比例尺)
+          
+          (數值小為小比例尺，數值越大則比例尺越大；譬如 10 可以看到整個中台灣，而 19 則已經是特寫部分街廓)
+          
+          (您可以從我們 [線上地圖平台](https://maps.map8.zone) 的網址列井字號 `#` 後面的第一個數字評估此數值)
+        required: true
+        schema:
+          type: number
+          minimum: 6
+          maximum: 19.99
+          example: 17.5
+      - name: size
+        in: query
+        description: '必要參數，欲製作的圖片寬高。格式為 <code><寬>,<高></code> (單位為 pixel)'
+        required: true
+        schema:
+          type: string
+          example: '1024x768'
+      - name: format
+        in: query
+        description: '必要參數，欲製作的圖片寬高。格式為 <code><寬>,<高></code> (單位為 pixel)'
+        required: false
+        schema:
+          type: string
+          enum: ['png', 'jpg']
+          example: 'png'
+      responses:
+        '200':
+          description: 'successful operation'
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+                example: 'binary image, e.g., https://www.map8.zone/map8-api-docs/images/maps-static-api-demo.png'
+            image/jpg:
+              schema:
+                type: string
+                format: binary
+                example: '(binary image)'
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+                example: '(binary image)'
+        '400':
+          $ref: '#/components/responses/BadRequest400'
+        '401':
+          $ref: '#/components/responses/AuthorizationRequired401'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable503'
+        '404':
+          $ref: '#/components/responses/NotFound404'
+  /v2/premium/housing/schooldistricts:
+    get:
+      tags:
+      - '[Premium] [Housing] School Districts API'
+      operationId: 'schooldistricts'
+      parameters:
+      - name: location
+        in: query
+        description: |
+          欲查詢 `學區` 的 `經緯度` 座標 (格式為 `<緯度>,<經度>`)
+        required: true
+        schema:
+          type: string
+          example: '24.868242,121.206504'
+      - name: kind
+        in: query
+        description: |
+          選擇性參數。值可為 <code>國中</code> 或 <code>國小</code>。此參數若未給定，則不篩選 (i.e., 不論國中或國小均回傳)。
+        required: false
+        schema:
+          type: string
+          example: '國小'
+      responses:
+        '200':
+          description: |
+            - Successful operation
+            - 每一筆搜尋結果內的各欄位, 若無值, 仍一律回傳, 但帶空值
+            - `請注意 : 本查詢結果僅供參考，實際可就讀學校依各縣市政府當年度核定結果為主`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchoolDistrictsApiResults'
+        '400':
+          $ref: '#/components/responses/BadRequest400'
+        '401':
+          $ref: '#/components/responses/AuthorizationRequired401'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable503'
+  /route/{交通工具}/{起訖點座標組}.json:
+    get:
+      tags:
+      - '[Routes] Directions API'
+      operationId: 'route'
+      parameters:
+      - name: 交通工具
+        in: path
+        description: '必要參數，可為 <code>car</code> (汽車)、<code>bicycle</code> (自行車)、或 <code>foot</code> (步行)。'
+        required: true
+        schema: 
+          type: string
+          enum:
+          - car
+          - bicycle
+          - foot
+      - name: 起訖點座標組
+        in: path
+        description: |
+          必要參數，格式為 : `<起點之經度>,<起點之緯度>;<中途點之經度>,<中途點之緯度>;...;<目的地之經度>,<目的地之緯度>.json`。
+          
+          亦即，乃以逗號分隔之 `<經度>,<緯度>` 座標為一組，然後以分號連接數組座標
+          
+          (請注意，座標格式是 `<經度>,<緯度>`，而非 `<緯度>,<經度>`)。
+          
+          第一組為起點 (origin)，最後一組為目的地 (destination)。而中間的數組則為要求路徑上必須經過的中途點 (waypoints)。
+          
+          請留意: 本 API 支援的 `<起訖點座標組>` 總數 (包含起點、中途點、與目的地) 最多為 100 個。
+        required: true
+        schema:
+          type: string
+        example: 121.54682830627758,25.05780519838912;121.54760773136468,25.0576378974028
+      responses:
+        '200':
+          description: 'successful operation (請參考 schema)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouteAPIResult'
+        '400':
+          $ref: '#/components/responses/BadRequest400'
+        '401':
+          $ref: '#/components/responses/AuthorizationRequired401'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable503'
+        '404':
+          $ref: '#/components/responses/NotFound404'
+  /road/nearestRoads/{交通工具}:
+    get:
+      tags:
+      - '[Roads] Nearest Roads API'
+      operationId: 'nearestRoads'
+      parameters:
+      - name: 交通工具
+        in: path
+        description: |
+          目前僅支援 `car` (汽車)。
+        required: true
+        schema: 
+          type: string
+          enum:
+          - car
+      - name: latlng
+        in: query
+        description: |
+          欲取得之 `道路` 的 `經緯度` 座標 (格式為 `<緯度>,<經度>`)
+        required: true
+        schema:
+          type: string
+          example: '25.073448,121.544539'
+      - name: additional_fields
+        in: query
+        description: |
+          - 指定欲額外索取之欄位，可為 :
+
+            |    值         | 意義 |
+            | ------------- | ------- |
+            |    `speed`    |  道路速限 (KPH)  |
+            |    `height`   |  道路限高 (公尺)  |
+            |    `elevated` |  若道路為高架，傳回 `1`，平面傳回 `0`，地下道傳回 `-1`  |
+            |    `bridge`   |  若道路為橋，傳回橋名  |
+    
+          - 可指定多個欄位 -- 請以逗點分隔即可，例如 `&additional_fields=speed,elevated,height,bridge`
+        required: false
+        schema:
+          type: string
+        example: speed,elevated,height,bridge
+      - name: bearing
+        in: query
+        description: |
+          指明座標 (`latlng` 參數) 所伴隨之行進方向。為與正北 (true north) 的夾角。範圍為 0 ~ 360 (i.e., 單位為 degree)
+        required: false
+        schema:
+          type: number
+          minimum: 0
+          maximum: 360
+          example: 2
+      - name: range
+        in: query
+        description: |
+          指定上述角度 (`bearing` 參數) 的容許偏差範圍。合法數值為 0 ~ 180 (i.e., 單位為 degree)。當此參數被指定時，`bearing` 參數也應被指定。
+        required: false
+        schema:
+          type: number
+          minimum: 0
+          maximum: 180
+          example: 3
+      - name: radius
+        in: query
+        description: |
+          - 對 `道路` 進行反定址時所容許的距離範圍。一般應為於實際位置進行 GPS 定位 `經緯度` 座標時所獲得的誤差值。單位為公尺 (meter; m)。
+          - (以手機而言，您可以考慮使用 Android 的 `Location.getAccuracy()` 或是 iOS 的 `CLLocation.horizontalAccuracy`。)
+          - 以上參數如圖解 : 
+            - ![](./images/road_api_advanced_params.png)
+        required: false
+        schema:
+          type: number
+          example: 15
+      responses:
+        '200':
+          description: |
+            - Successful operation
+            - 每一筆搜尋結果內的各欄位, 若無值, 仍一律回傳, 但帶空值
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NearestRoadsApiResults'
+        '400':
+          $ref: '#/components/responses/BadRequest400'
+        '401':
+          $ref: '#/components/responses/AuthorizationRequired401'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable503'
+  /road/snapToRoads/{交通工具}/{路徑點座標組}.json:
+    get:
+      tags:
+      - '[Roads] Snap to Roads API'
+      operationId: 'snapToRoads'
+      parameters:
+      - name: 交通工具
+        in: path
+        description: '必要參數，可為 <code>car</code> (汽車)、<code>bicycle</code> (自行車)、或 <code>foot</code> (步行)。'
+        required: true
+        schema: 
+          type: string
+          enum:
+          - car
+          - bicycle
+          - foot
+      - name: 路徑點座標組
+        in: path
+        description: |
+          必要參數，格式為 : `<路徑起點之經度>,<路徑起點之緯度>;<路徑中途點之經度>,<路徑中途點之緯度>;...;<路徑終點之經度>,<路徑終點之緯度>.json`。
+          
+          亦即，乃以逗號分隔之 `<經度>,<緯度>` 座標為一組，然後以分號連接數組座標
+          
+          (請注意，座標格式是 `<經度>,<緯度>`，而非 `<緯度>,<經度>`)。
+          
+          第一組為起點，最後一組為終點。而中間的數組則為路徑上依序經過的中途點 (waypoints)。
+          
+          請留意: 本 API 支援的 <路徑點座標組> 總數最多為 100 個。
+        required: true
+        schema:
+          type: string
+        example: 121.57984055289461,25.06516253907658;121.58269442328509,25.06609550812837;121.58453978308859,25.065648461344452;121.58522642859657,25.06419068875931;121.58535517462786,25.062344151916164
+      responses:
+        '200':
+          description: |
+            - Successful operation
+            - 每一筆搜尋結果內的各欄位, 若無值, 仍一律回傳, 但帶空值
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapToRoadsApiResults'
+        '400':
+          $ref: '#/components/responses/BadRequest400'
+        '401':
+          $ref: '#/components/responses/AuthorizationRequired401'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable503'        
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: query
+      name: key
+  schemas:
+    PlaceGeoRecord:
+        type: object
+        properties:
+          formatted_address: 
+            type: string
+          geometry:
+            type: object
+            properties:
+              location: 
+                type: object
+                properties:
+                  lat:
+                    type: number
+                    format: float
+                  lng:
+                    type: number
+                    format: float
+          id: 
+            type: string
+          place_id: 
+            type: string
+          name: 
+            type: string
+          tel: 
+            type: string
+          city: 
+            type: string
+          town: 
+            type: string
+          type: 
+            type: string
+            enum: ['地點', '地址', '道路']
+          chain:
+            type: string
+          branch:
+            type: string
+          cat:
+            type: string
+          distance:
+            type: number
+            format: float
+          postcode: 
+            type: string
+    PlaceResults:
+        type: object
+        properties:
+          html_attributions: 
+            type: array
+            items: 
+              type: string
+            example: '["台灣圖霸", "研鼎智能", "PAPAGO!"]'
+          results:
+            type: array
+            items: 
+              $ref: '#/components/schemas/PlaceGeoRecord'
+          status:
+            $ref: '#/components/schemas/ResultStatus'
+    PlaceCandidates:
+        type: object
+        properties:
+          html_attributions: 
+            type: array
+            items: 
+              type: string
+            example: '["台灣圖霸", "研鼎智能", "PAPAGO!"]'
+          candidates:
+            type: array
+            items: 
+              $ref: '#/components/schemas/PlaceGeoRecord'
+          status:
+            $ref: '#/components/schemas/ResultStatus'
+    PlacePredictions:
+        type: object
+        properties:
+          html_attributions: 
+            type: array
+            items: 
+              type: string
+            example: '["台灣圖霸", "研鼎智能", "PAPAGO!"]'
+          candidates:
+            type: array
+            items: 
+              $ref: '#/components/schemas/PlaceGeoRecord'
+          status:
+            $ref: '#/components/schemas/ResultStatus'
+    PlaceDetails:
+        type: object
+        properties:
+          html_attributions: 
+            type: array
+            items: 
+              type: string
+            example: '["台灣圖霸", "研鼎智能", "PAPAGO!"]'
+          result:
+            $ref: '#/components/schemas/PlaceGeoRecord'
+          status:
+            $ref: '#/components/schemas/ResultStatus'
+    GecodeGeoRecord:
+        type: object
+        properties:
+          formatted_address: 
+            type: string
+          geometry:
+            type: object
+            properties:
+              location: 
+                type: object
+                properties:
+                  lat:
+                    type: number
+                    format: float
+                  lng:
+                    type: number
+                    format: float
+          id: 
+            type: string
+          place_id: 
+            type: string
+          name: 
+            type: string
+          city: 
+            type: string
+          town: 
+            type: string
+          type: 
+            type: string
+            enum: ['地點', '地址', '道路']
+          postcode: 
+            type: string
+          level:
+            type: string
+            enum: ['fuzzy', '1', '2', '3', '4', '5', '6', '0', '-1', '-2', '-3', '-4', '-5', '-6', '-7']
+          likelihood:
+            type: number
+            format: float
+          authoritative:
+            type: string
+            enum: ['true', 'false']
+    GeocodeResults:
+        type: object
+        properties:
+          html_attributions: 
+            type: array
+            items: 
+              type: string
+            example: '["台灣圖霸", "研鼎智能", "PAPAGO!"]'
+          results:
+            type: array
+            items: 
+              $ref: '#/components/schemas/GecodeGeoRecord'
+          status:
+            $ref: '#/components/schemas/ResultStatus'
+    ReverseGecodeGeoRecord:
+        type: object
+        properties:
+          formatted_address: 
+            type: string
+          name: 
+            type: string
+          city: 
+            type: string
+          town: 
+            type: string
+          postcode: 
+            type: string
+    ReverseGeocodeResults:
+        type: object
+        properties:
+          html_attributions: 
+            type: array
+            items: 
+              type: string
+            example: '["台灣圖霸", "研鼎智能", "PAPAGO!"]'
+          results:
+            type: array
+            items: 
+              $ref: '#/components/schemas/ReverseGecodeGeoRecord'
+          status:
+            $ref: '#/components/schemas/ResultStatus'
+    RouteAPIResult:
+        type: object
+        properties:
+          code: 
+            type: string
+            example: "Ok"
+          waypoints:
+            type: array
+            items: 
+              $ref: '#/components/schemas/Waypoint'
+          routes:
+            type: array
+            items:
+              $ref: '#/components/schemas/RouteResults'
+    Waypoint:
+        type: object
+        properties:
+          name:
+            type: string
+            example: ""
+          location:
+            type: array
+            items:
+              type: number
+              example: [121.546828,25.057806]
+          distance:
+            type: number
+            example: 110.769
+    RouteResults:
+        type: object
+        properties:
+          legs:
+            type: array
+            items:
+              $ref: '#/components/schemas/RouteLeg' 
+          geometry:
+            type: string
+          distance:
+            type: number
+            example: 228.4
+          duration:
+            type: number
+            example: 32.6
+    RouteLeg:
+        type: object
+        properties:
+          distance:
+            type: number
+          duration:
+            type: number
+          summary:
+            type: string
+          steps:
+            type: array
+            items:
+              $ref: '#/components/schemas/LegStep'
+    LegStep:
+        type: object
+    NearestRoadsApiGeoRecord:
+        type: object
+        properties:
+          formatted_address: 
+            type: string
+          id: 
+            type: string
+          place_id: 
+            type: string
+          name: 
+            type: string
+          city: 
+            type: string
+          town: 
+            type: string
+          type: 
+            type: string
+            enum: ['道路']
+          speed: 
+            type: string
+          height:
+            type: string
+          elevated:
+            type: string
+            enum: ['0', '1', '-1']
+          bridge:
+            type: string
+    NearestRoadsApiResults:
+        type: object
+        properties:
+          html_attributions: 
+            type: array
+            items: 
+              type: string
+            example: '["台灣圖霸", "研鼎智能", "PAPAGO!"]'
+          results:
+            type: array
+            items: 
+              $ref: '#/components/schemas/NearestRoadsApiGeoRecord'
+          status:
+            $ref: '#/components/schemas/ResultStatus'
+    SchoolDistrictsApiGeoRecord:
+        type: object
+        properties:
+          place_id: 
+            type: string
+          city: 
+            type: string
+          town: 
+            type: string
+          name: 
+            type: string
+          kind: 
+            type: string
+    SchoolDistrictsApiResults:
+        type: object
+        properties:
+          html_attributions: 
+            type: array
+            items: 
+              type: string
+            example: '["台灣圖霸", "研鼎智能", "PAPAGO!"]'
+          results:
+            type: array
+            items: 
+              $ref: '#/components/schemas/SchoolDistrictsApiGeoRecord'
+          status:
+            $ref: '#/components/schemas/ResultStatus'
+    Tracepoint:
+        type: object
+        properties:
+          alternatives_count:
+            type: number
+            example: 0
+          waypoint_index:
+            type: number
+            example: 4
+          location:
+            type: array
+            items:
+              type: number
+              example: [121.585366, 25.062366]
+          distance:
+            type: number
+            example: 3
+          name:
+            type: string
+            example: "行善路333巷"
+    MatchingRecord: 
+        type: object
+        properties:
+          tracepoints:
+            type: array
+            items: 
+              $ref: '#/components/schemas/Tracepoint'
+          geometry:
+            type: string
+    SnapToRoadsApiResults:
+        type: object
+        properties:
+          html_attributions: 
+            type: array
+            items: 
+              type: string
+            example: '["台灣圖霸", "研鼎智能", "PAPAGO!"]'
+          matchings:
+            type: array
+            items: 
+              $ref: '#/components/schemas/MatchingRecord'
+          status:
+            $ref: '#/components/schemas/ResultStatus'
+    OriginDestRecord: 
+        type: object
+        properties:
+          routePoint:
+            $ref: '#/components/schemas/Waypoint'
+          place:
+            $ref: '#/components/schemas/GecodeGeoRecord'
+    DurationRecord:
+        type: object
+        properties:
+          value: 
+            type: number
+            example: 374
+          text: 
+            type: string
+            example: '6 分鐘'
+    DistanceRecord:
+        type: object
+        properties:
+          value: 
+            type: number
+            example: 1900
+          text: 
+            type: string
+            example: '1.9 公里'
+    DistanceMatrixApiRowElement: 
+        type: object
+        properties:
+          duration:
+            $ref: '#/components/schemas/DurationRecord'
+          distance:
+            $ref: '#/components/schemas/DistanceRecord'
+    DistanceMatrixApiRow: 
+        type: object
+        properties:
+          elements:
+            type: array
+            items: 
+              $ref: '#/components/schemas/DistanceMatrixApiRowElement'
+    DistanceMatrixApiResults:
+        type: object
+        properties:
+          html_attributions: 
+            type: array
+            items: 
+              type: string
+            example: '["台灣圖霸", "研鼎智能", "PAPAGO!"]'
+          destinations:
+            type: array
+            items: 
+              $ref: '#/components/schemas/OriginDestRecord'
+          origins:
+            type: array
+            items: 
+              $ref: '#/components/schemas/OriginDestRecord'
+          rows:
+            type: array
+            items:
+              $ref: '#/components/schemas/DistanceMatrixApiRow'
+          status:
+            $ref: '#/components/schemas/ResultStatus'
+    TripRecord:
+        type: object
+        properties:
+          waypoints:
+            type: array
+            items: 
+              $ref: '#/components/schemas/Waypoint'
+          duration:
+            $ref: '#/components/schemas/DurationRecord'
+          distance:
+            $ref: '#/components/schemas/DistanceRecord'
+    TripApiResults:
+        type: object
+        properties:
+          html_attributions: 
+            type: array
+            items: 
+              type: string
+            example: '["台灣圖霸", "研鼎智能", "PAPAGO!"]'
+          trips:
+            type: array
+            items: 
+              $ref: '#/components/schemas/TripRecord'
+          geometry:
+            type: string
+          status:
+            $ref: '#/components/schemas/ResultStatus'
+    ResultStatus:
+        type: string
+        enum: ['OK', 'ZERO_RESULTS', 'OVER_QUERY_LIMIT', 'REQUEST_DENIED', 'INVALID_REQUEST', 'UNKNOWN_ERROR']
+  responses:
+    PlaceResults200: 
+      description: |
+        - Successful operation 
+        - `results` 陣列帶回本次搜尋的查詢結果。本 API 的查詢，最多一次回應 100 筆資料
+        - 每一筆搜尋結果內的各欄位, 若無值, 仍一律回傳, 但帶空
+        - (Migration 指南) 與 Google Maps 的 Places API 相容性，請參閱我們的 [Map8 API 官方技術文件](https://www.map8.zone/map8-api-docs#api-text-search-api)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PlaceResults'
+    BadRequest400:
+      description: '表示您的 requset 解析有誤。通常是給入的參數多了或少了，或是格式有錯誤，或必要參數卻沒給，等等'
+      content: {}
+    AuthorizationRequired401:
+      description: '表示您未給定您的 key，或是您給的 key 並非有效。請跟我們聯絡'
+      content: {}
+    ServiceUnavailable503:
+      description: '表示您的 request 已經超出與我們約定的 QoS (服務品質) 等級。通常過一會兒 (QoS 上限解除) 再重發一次即可成功。如果持續發生，請跟我們聯絡'
+      content: {}
+    NotFound404:
+      description: '表示您的 request 的 URL 路徑 / 參數有誤'
+      content: {}
+security:
+  - ApiKeyAuth: []     # use the same name as under securitySchemes
+
+
